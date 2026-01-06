@@ -1,0 +1,68 @@
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper Functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // Check if only the vote fields are being updated
+    function isUpdatingVotes() {
+      let changedKeys = request.resource.data.diff(resource.data).affectedKeys();
+      // Ensure only the votes and totalVotes fields are being changed.
+      return changedKeys.hasOnly(['votes', 'totalVotes']);
+    }
+
+    function isUpdatingOwnContent() {
+      // Find all keys that are NOT vote-related
+      let nonVoteFields = request.resource.data.keys().removeAll(['votes', 'totalVotes']);
+      // Check if the author is the one making the changes and if any of the changed keys are not vote-related.
+      return isOwner(resource.data.authorId) && 
+             request.resource.data.diff(resource.data).affectedKeys().hasAny(nonVoteFields);
+    }
+    
+    // Users can read their own profile, and all profiles are public reads for signed in users
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow write: if isOwner(userId);
+    }
+
+    // Posts are public to read for everyone.
+    match /posts/{postId} {
+      // Allow anyone to get a single post, and anyone to list the collection.
+      allow get, list: if true;
+
+      allow create: if isOwner(request.resource.data.authorId);
+      
+      // Allow updates under two conditions:
+      // 1. A signed-in user is ONLY updating the vote counts.
+      // 2. The original author is updating their own content (but not vote counts).
+      allow update: if (isSignedIn() && isUpdatingVotes()) || isUpdatingOwnContent();
+
+      allow delete: if isOwner(resource.data.authorId);
+
+      // Votes can be read by anyone.
+      // Users can only create, update, or delete their own vote.
+      match /votes/{voteId} {
+        allow read: if true;
+        // The voteId must match the user's UID to ensure they only edit their own vote
+        allow write: if isSignedIn() && voteId == request.auth.uid;
+      }
+
+      // Comments can be read by anyone.
+      // Users can only create their own comments.
+      match /comments/{commentId} {
+        allow read: if true;
+        allow create: if isOwner(request.resource.data.authorId);
+        allow update, delete: if false; // Comments are immutable
+      }
+    }
+  }
+}

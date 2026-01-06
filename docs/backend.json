@@ -1,0 +1,171 @@
+
+{
+  "entities": {
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "Represents a user's public profile information.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "The user's unique ID, matching their Firebase Auth UID."
+        },
+        "name": {
+          "type": "string",
+          "description": "The user's display name."
+        },
+        "avatarUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL of the user's avatar image."
+        }
+      },
+      "required": ["id", "name"]
+    },
+    "Post": {
+      "title": "Post",
+      "description": "Represents a policy proposal or citizen-submitted idea.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "The unique ID of the post."
+        },
+        "type": {
+          "type": "string",
+          "enum": ["Central Government", "State Government", "Citizen"],
+          "description": "The type of the post."
+        },
+        "authorId": {
+          "type": "string",
+          "description": "The UID of the user who created the post."
+        },
+        "title": {
+          "type": "string"
+        },
+        "shortDescription": {
+          "type": "string"
+        },
+        "fullDescription": {
+          "type": "string"
+        },
+        "mediaUrl": {
+          "type": "string",
+          "format": "uri"
+        },
+        "mediaHint": {
+          "type": "string"
+        },
+        "aiSummary": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "aiCommentSummary": {
+          "type": "string",
+          "description": "AI-generated summary of all comments on the post."
+        },
+        "topicTags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["id", "type", "authorId", "title", "shortDescription", "fullDescription", "createdAt"]
+    },
+    "Vote": {
+      "title": "Vote",
+      "description": "Represents a single vote on a post.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique ID for the vote."
+        },
+        "postId": {
+          "type": "string"
+        },
+        "userId": {
+          "type": "string"
+        },
+        "voteType": {
+          "type": "string",
+          "enum": ["agree", "mixed", "disagree"]
+        },
+        "reasons": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "comment": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["id", "postId", "userId", "voteType"]
+    },
+    "Comment": {
+      "title": "Comment",
+      "description": "Represents a comment on a post.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique ID for the comment."
+        },
+        "postId": {
+          "type": "string"
+        },
+        "authorId": {
+          "type": "string"
+        },
+        "author": {
+          "type": "string"
+        },
+        "authorAvatarUrl": {
+          "type": "string",
+          "format": "uri"
+        },
+        "text": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["id", "postId", "authorId", "author", "text", "createdAt"]
+    }
+  },
+  "auth": {
+    "providers": ["email"]
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Stores public profiles for all users."
+    },
+    "/posts/{postId}": {
+      "schema": { "$ref": "#/entities/Post" },
+      "description": "A global collection of all posts, from both citizens and government."
+    },
+    "/posts/{postId}/votes/{voteId}": {
+      "schema": { "$ref": "#/entities/Vote" },
+      "description": "Sub-collection for votes on a specific post."
+    },
+    "/posts/{postId}/comments/{commentId}": {
+      "schema": { "$ref": "#/entities/Comment" },
+      "description": "Sub-collection for comments on a specific post."
+    }
+  }
+}
